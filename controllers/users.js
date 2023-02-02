@@ -4,26 +4,24 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const { validationResult } = require('express-validator');
 
-const getUsers = (req = request, res = response) => {
-  const { q, name = 'no-name', apiKey } = req.query;
+const getUsers = async (req = request, res = response) => {
+  const { limit = 5, desde = 0 } = req.query;
+  const query = { state: true };
+
+  const [ total, users ] = await Promise.all([
+    User.countDocuments( query ),
+    User.find( query ).limit(limit).skip(desde),
+  ]);
 
   res.status(201).json({
-    msg: 'GET api - desde el controller',
-    q,
-    name,
-    apiKey,
+    total,
+    users
   });
 }
 
 const createUser = async (req = request, res = response) => {
   const { name, email, password, role } = req.body;
   const user = new User({ name, email, password, role });
-  
-  // verificar si el correo existe
-  const existEmail = await User.findOne({ email });
-  if ( existEmail ) return res.status(400).json({
-    msg: 'El correo ya esta en uso'
-  });
 
   // encriptar el password
   const salt = bcrypt.genSaltSync();
@@ -37,17 +35,30 @@ const createUser = async (req = request, res = response) => {
   });
 }
 
-const updateUser = (req = request, res = response) => {
+const updateUser = async (req = request, res = response) => {
   const { id } = req.params;
+  const { _id, state, password, google, ...user } = req.body;
 
-  res.status(201).json({
-    msg: 'PUT api - desde el controller'
+  if ( password ) {
+    const salt = bcrypt.genSaltSync();
+    user.password = bcrypt.hashSync( password, salt );
+  }
+
+  const newUser = await User.findByIdAndUpdate( id, user, { returnDocument: 'after' } );
+
+  res.status(200).json({
+    user: newUser
   });
 }
 
-const deleteUser = (req, res = response) => {
-  res.status(201).json({
-    msg: 'DELETE api - desde el controller'
+const deleteUser = async (req, res = response) => {
+  const { id } = req.params;
+
+  // const user = await User.findByIdAndDelete( id );
+  const user = await User.findByIdAndUpdate(id, { state: false })
+
+  res.json({
+    msg: `Se elimino el usuario con id: ${user._id}`,
   });
 }
 
