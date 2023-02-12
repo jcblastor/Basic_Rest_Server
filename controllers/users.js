@@ -54,11 +54,16 @@ const updateUser = async (req = request, res = response) => {
 const deleteUser = async (req, res = response) => {
   const { id } = req.params;
 
+  // usamos el uid que guardamos al momento de validar el token
+  // const uid = req.uid;
+  // usamos el usuario que guardamos en validar token
+  // const authUser = req.user;
+
   // const user = await User.findByIdAndDelete( id );
   const user = await User.findByIdAndUpdate(id, { state: false })
 
   res.json({
-    msg: `Se elimino el usuario con id: ${user._id}`,
+    msg: `Se elimino el usuario con id: ${id}`,
   });
 }
 
